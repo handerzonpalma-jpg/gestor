@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gerenciamento de Tarefas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <main id="page-login" class="login-wrapper">
+        <h1 class="main-title">Sistema de <br> Gerenciamento de <br> Tarefas</h1>
+        <section class="card-login">
+            <h2>Bem-vindo de volta!</h2>
+            <form onsubmit="event.preventDefault(); navigateTo('page-dashboard')">
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" placeholder="seu@email.com" required>
+                </div>
+                <div class="input-group">
+                    <label>Senha</label>
+                    <input type="password" placeholder="Sua senha" required>
+                </div>
+                <button type="submit" class="btn-primary">Entrar</button>
+            </form>
+            <p class="footer-link">Não tem uma conta? <a href="#">Cadastre-se</a></p>
+        </section>
+    </main>
+
+    <div id="main-layout" class="dashboard-container" style="display:none;">
+        <aside class="sidebar">
+            <h2 class="logo">Dashboard</h2>
+            <nav>
+                <ul>
+                    <li id="menu-list" onclick="navigateTo('page-dashboard')">Minhas Tarefas</li>
+                    <li onclick="openForm()">Criar Tarefa</li>
+                    <li>Configurações</li>
+                    <li onclick="navigateTo('page-login')">Sair</li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <section id="page-dashboard">
+                <header class="content-header">
+                    <h2>Minhas Tarefas</h2>
+                    <button class="btn-new-task" onclick="openForm()">Nova Tarefa</button>
+                </header>
+                <div id="task-grid" class="task-grid"></div>
+            </section>
+
+            <section id="page-details" style="display:none;">
+                <header class="content-header">
+                    <h2>Detalhes da Tarefa</h2>
+                    <button class="btn-blue-outline" onclick="navigateTo('page-dashboard')">Voltar para a Lista</button>
+                </header>
+                
+                <div class="card-details">
+                    <h3 id="det-title">Título da Tarefa</h3>
+                    <p class="status">Status: <span style="color: #f39c12;">Pendente</span></p>
+                    <hr>
+                    <p class="date">Criada em: <span id="det-date">24 de Agosto de 2025</span></p>
+                    <hr>
+                    <label>Descrição:</label>
+                    <p id="det-desc" class="desc-text"></p>
+                    
+                    <div class="details-footer">
+                        <button class="btn-edit-action" id="det-edit-btn">Editar Tarefa</button>
+                        <button class="btn-delete-action" id="det-del-btn">Excluir Tarefa</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="page-form" style="display:none;">
+                <h2 id="form-title">Nova Tarefa</h2>
+                <div class="card-login" style="width: 100%; margin-top: 20px;">
+                    <form id="task-form">
+                        <input type="hidden" id="task-id">
+                        <div class="input-group">
+                            <label>Título</label>
+                            <input type="text" id="task-title" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Descrição</label>
+                            <textarea id="task-desc" rows="5"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">Salvar</button>
+                        <button type="button" class="btn-secondary" onclick="navigateTo('page-dashboard')">Cancelar</button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let tasks = JSON.parse(localStorage.getItem('tasks_db')) || [];
+
+        function navigateTo(pageId) {
+            // Controle de layouts
+            document.getElementById('page-login').style.display = (pageId === 'page-login') ? 'flex' : 'none';
+            document.getElementById('main-layout').style.display = (pageId === 'page-login') ? 'none' : 'flex';
+
+            // Controle de sub-páginas
+            document.getElementById('page-dashboard').style.display = (pageId === 'page-dashboard') ? 'block' : 'none';
+            document.getElementById('page-details').style.display = (pageId === 'page-details') ? 'block' : 'none';
+            document.getElementById('page-form').style.display = (pageId === 'page-form') ? 'block' : 'none';
+
+            if(pageId === 'page-dashboard') renderTasks();
+        }
+
+        function renderTasks() {
+            const container = document.getElementById('task-grid');
+            container.innerHTML = tasks.length ? '' : '<p>Nenhuma tarefa encontrada.</p>';
+            tasks.forEach(t => {
+                container.innerHTML += `
+                    <div class="task-card">
+                        <div class="task-card-header">
+                            <h3>${t.title}</h3>
+                            <span class="view-icon" onclick="viewTask(${t.id})">👁️</span>
+                        </div>
+                        <p>${t.desc.substring(0, 60)}...</p>
+                        <button class="btn-edit" onclick="editTask(${t.id})">Editar</button>
+                        <button class="btn-complete" onclick="deleteTask(${t.id})">Concluir</button>
+                    </div>`;
+            });
+        }
+
+        function viewTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if(task) {
+                document.getElementById('det-title').innerText = task.title;
+                document.getElementById('det-desc').innerText = task.desc;
+                document.getElementById('det-date').innerText = task.date || new Date().toLocaleDateString();
+                
+                // Configurar botões de ação dentro dos detalhes
+                document.getElementById('det-edit-btn').onclick = () => editTask(task.id);
+                document.getElementById('det-del-btn').onclick = () => deleteTask(task.id);
+                
+                navigateTo('page-details');
+            }
+        }
+
+        function openForm() {
+            document.getElementById('form-title').innerText = "Nova Tarefa";
+            document.getElementById('task-id').value = "";
+            document.getElementById('task-form').reset();
+            navigateTo('page-form');
+        }
+
+        function editTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if(task) {
+                document.getElementById('form-title').innerText = "Editar Tarefa";
+                document.getElementById('task-id').value = task.id;
+                document.getElementById('task-title').value = task.title;
+                document.getElementById('task-desc').value = task.desc;
+                navigateTo('page-form');
+            }
+        }
+
+        document.getElementById('task-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('task-id').value;
+            const title = document.getElementById('task-title').value;
+            const desc = document.getElementById('task-desc').value;
+            const date = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
+
+            if(id) {
+                const idx = tasks.findIndex(t => t.id == id);
+                tasks[idx] = { ...tasks[idx], title, desc };
+            } else {
+                tasks.push({ id: Date.now(), title, desc, date });
+            }
+            localStorage.setItem('tasks_db', JSON.stringify(tasks));
+            navigateTo('page-dashboard');
+        });
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            localStorage.setItem('tasks_db', JSON.stringify(tasks));
+            navigateTo('page-dashboard');
+        }
+
+        navigateTo('page-login');
+    </script>
+</body>
+</html>
